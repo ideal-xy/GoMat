@@ -1,1 +1,7 @@
-/docs
+# 忽略 Makefile
+Makefile
+
+# 忽略 build 目录
+/build/
+
+/docs/

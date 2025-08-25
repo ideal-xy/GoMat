@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/xuyan/Desktop/GoMat/build/cmake_install.cmake",
-		"/Users/xuyan/Desktop/GoMat/build/test/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
