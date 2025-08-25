@@ -1,5 +1,6 @@
 #include "matrix.h"
 
+
 using namespace gomat;
 Matrix::Matrix(size_t rows,size_t cols,bool use_contiguous):m_rows(rows),m_cols(cols),m_is_contiguous(use_contiguous)
 {
