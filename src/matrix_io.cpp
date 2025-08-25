@@ -7,13 +7,14 @@
 #include "utils.h"
 #include "matrix_stream.h"
 
-using namespace gomat;
+namespace gomat{
 
 std::vector<std::string> splitCSVLines(const std::string& line)
 {
     std::vector<std::string> elements;
     std::string current;
     bool flag = false; // 判断遍历字符是否在引号内 
+    
 
     for (char c:line)
     {
@@ -33,7 +34,9 @@ std::vector<std::string> splitCSVLines(const std::string& line)
     elements.push_back(current);
     return elements;
 }
+}
 
+namespace gomat {
 void Matrix::loadFromCsv(const std::string& filename)
 {
     size_t dotPos = filename.find_last_of('.');
@@ -101,6 +104,9 @@ void Matrix::loadFromCsv(const std::string& filename)
     }
 }
 
+} //  namespace
+
+namespace gomat {
 void Matrix::matrixToCsv(const std::string& filename,int precision,char comma)
 {
     size_t dotPos = filename.find_last_of('.'); // 检查文件拓展名是否是.csv
@@ -141,7 +147,8 @@ void Matrix::matrixToCsv(const std::string& filename,int precision,char comma)
     }
     file.close();
 
-} // namespace
+} 
+}
 
 namespace gomat{
 std::istream& operator>> (std::istream& in, Matrix& mat)
@@ -194,9 +201,11 @@ std::ostream& operator<<(std::ostream& out, const Matrix& mat) {
 }
 } // namespace 
 
-
+namespace  gomat {
 MatrixStream Matrix::operator<<(double value)
 {
     MatrixStream matStream(*this);
     return matStream << value;
+}
+
 }
