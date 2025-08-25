@@ -1,6 +1,7 @@
 #include "matrix_view.h"
 
 namespace gomat{
+    //
 
 TransposeView Matrix::transposeView() const
 {
