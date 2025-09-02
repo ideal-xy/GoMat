@@ -97,3 +97,8 @@ bool Matrix::isLarge() const
 {
     return ((m_cols * m_rows) >= 40000);
 }
+
+bool Matrix::isContiguous() const
+{
+    return m_is_contiguous;
+}

@@ -246,10 +246,13 @@ Matrix Matrix::multiplyDense(const Matrix& other) const
     mul_mat.m_cols = other.m_cols;
     mul_mat.m_rows = m_rows;
 
-    for (size_t r = 0; r < m_rows; ++r) {
-        for (size_t k = 0; k < m_cols; ++k) {
+    for (size_t r = 0; r < m_rows; ++r) 
+    {
+        for (size_t k = 0; k < m_cols; ++k) 
+        {
             const double val = (*this)(r,k);
-            for (size_t c = 0; c < other.m_cols; ++c) {
+            for (size_t c = 0; c < other.m_cols; ++c) 
+            {
                 mul_mat(r,c) += val * other(k,c);
             }
         }
@@ -333,24 +336,45 @@ Matrix Matrix::multiplySmall(const Matrix& mat) const
 
 void Matrix::erase()
 {
-    fillWithOneValue(0.0);
+    this->fillWithOneValue(0.0);
 }
 
 
-Matrix Matrix::subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col) 
+Matrix Matrix::subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col)  
  //子矩阵确定方法是两条横线，两条竖线交叉产生一个矩阵
 {
-    Matrix mat(end_row - start_row,end_col - start_col);
+    Matrix mat(end_row - start_row+1,end_col - start_col+1);
 
-    if(mat.m_rows != end_row - start_row || mat.m_cols != end_col - start_col )
-    {
-        throw std::invalid_argument("Inapporiate matrix size ! please check the matrix you input");
-    }
-
-    for(size_t i=start_row;i<= end_row;++i)
+    for(size_t i=start_row;i < end_row;++i)
     {
         std::copy(m_mat[i].begin(),m_mat[1].begin()+(end_col-start_col),mat.m_mat[i-start_row].begin());
     }
     
     return mat;
+}
+
+double Matrix::blockSum(size_t start_row,size_t end_row,size_t start_col,size_t end_col)
+{
+    double sum = 0.0;
+
+    if (this->isContiguous())
+    {
+        for (size_t i =start_row;i <= end_row;++i )
+        {
+            for (size_t j = start_col;j <= end_col; ++j)
+            {
+                sum += this->operator()(i,j);
+            }
+        }
+        return sum;
+    }
+    else
+    {
+        for (size_t i=start_row; i <= end_row;++i)
+        {
+            sum += std::accumulate(m_mat[i].begin()+start_col,m_mat[i].begin()+end_col,0.0, [](double acc,double ele){return acc + ele*ele;});
+        }
+        
+        return sum;
+    }
 }
