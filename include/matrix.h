@@ -66,6 +66,7 @@ public:
     bool isUpperTriangular(double epsilon) const;
     bool isLowerTriangular(double epsilon) const;
     bool isLarge() const;
+    bool isContiguous() const;
 
     //复杂特征
     double determiant() const ; // 行列式
@@ -95,8 +96,12 @@ public:
     Matrix multiplyDense(const Matrix& other) const;
     Matrix multiplyDiagonal(const Matrix& other) const;
     Matrix multiplyUpperTriangle(const Matrix& other) const;
-    // Matrix multiplyLowerTriangle(const Matrix& other) const;
-    // Matrix multiplyByblock(const Matrix& other) const;
+    Matrix multiplyWithSimd(const Matrix& other) const;
+    
+    /*
+    multiplyBySimd()是使用SIMD指令集进行矩阵乘法计算，在对矩阵进行4 * 4的分块之后，把每一块作为参数
+    传递给核函数，核函数内部进行向量与向量的运算
+    */
    
     //基本的算数运运算符重载
     Matrix operator+(const Matrix& other) const;
@@ -108,6 +113,12 @@ public:
     Matrix operator,(const Vector& vec) const;
     Matrix operator,(const Matrix& mat) const;
     Matrix& operator=(Matrix&& other) noexcept; // 移动赋值构造函数
+   
+    // 这个函数单单是为了写矩阵乘法用的,只读不修改
+    const double& at(size_t row, size_t col) const 
+    {
+        return m_data[col * m_cols + row];
+    }
 
     //三类初等变换
     void rowInterchange(size_t i,size_t j);
@@ -133,8 +144,10 @@ public:
     Matrix replicate(size_t rowTimes,size_t colTimes) const;
 
     // 辅助操作
-    void erase(); //清空矩阵
-    Matrix subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col);// 取子矩阵
+    void erase();   //清空矩阵
+    Matrix subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col) const; // 取子矩阵
+    double blockSum(size_t start_row,size_t end_row,size_t start_col,size_t end_col) const ;  // 计算某一个子矩阵的元素之和
+
 
     //导出矩阵到csv文件
     void matrixToCsv(const std::string& filename,int precison = 6,char comma = ',');
