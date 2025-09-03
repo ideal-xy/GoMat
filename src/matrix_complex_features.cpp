@@ -67,12 +67,19 @@ int Matrix::rank() const {
 
 double Matrix::sum() const
 {
-    double total = 0.0;
-    for (auto& row:m_mat) 
+    const size_t blockSize = 16;
+    double sum = 0.0;
+
+    for (size_t i = 0;i<m_rows; i = i + blockSize)
     {
-        total += std::accumulate(row.begin(),row.end(),0.0);
+        for (size_t j = 0;j < m_cols; j = j + blockSize)
+        {
+            size_t endRow = i + std::min(blockSize,m_rows - 1 - i);
+            size_t endCol = j + std::min(blockSize,m_cols - 1 - j);
+
+            sum += blockSum(i,j,endRow,endCol);
+        }
     }
-    return total;
 }
 
 double Matrix::product() const
