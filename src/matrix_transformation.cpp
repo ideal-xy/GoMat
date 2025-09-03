@@ -7,20 +7,26 @@
 
 using namespace gomat;
 
-void Matrix::toContiguous()
+void Matrix::toContiguous() 
 {
-    if(m_is_contiguous) return;
-    
-    m_is_contiguous = true; // 标记更新
-    m_data.resize(m_rows * m_cols);
-    for(size_t i=1;i<m_rows;++i)
+    if (!m_is_contiguous && !m_mat.empty()) 
     {
-        std::copy(m_mat[i].begin(),m_mat[i].end(),m_data.begin()+i * m_rows);
+        m_data.resize(m_rows * m_cols); 
+
+        for (size_t j = 0; j < m_cols; ++j)
+        { 
+            for (size_t i = 0; i < m_rows; ++i) 
+            { 
+                m_data[i + j * m_rows] = m_mat[i][j]; // 从行major到列major
+            }
+        }
+
+        m_mat.clear();
+        m_is_contiguous = true;
     }
-    m_mat.clear();
 }
 
-void Matrix::toNonContiguous()
+void Matrix::toNonContiguous() //。这个还需要修改
 {
     if(!m_is_contiguous) return;
 
