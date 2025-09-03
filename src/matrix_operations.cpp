@@ -11,9 +11,10 @@ using namespace gomat;
 
 double& Matrix::operator()(size_t row,size_t col)
 {
-    // assert(row < m_rows && col < m_cols);
+    
     return getElement(row,col);
 }
+
 
 double Matrix::operator()(size_t row,size_t col) const
 {
@@ -340,7 +341,7 @@ void Matrix::erase()
 }
 
 
-Matrix Matrix::subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col)  
+Matrix Matrix::subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col)  const
  //子矩阵确定方法是两条横线，两条竖线交叉产生一个矩阵
 {
     Matrix mat(end_row - start_row+1,end_col - start_col+1);
@@ -353,7 +354,7 @@ Matrix Matrix::subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t
     return mat;
 }
 
-double Matrix::blockSum(size_t start_row,size_t end_row,size_t start_col,size_t end_col)
+double Matrix::blockSum(size_t start_row,size_t end_row,size_t start_col,size_t end_col) const
 {
     double sum = 0.0;
 
