@@ -32,7 +32,6 @@ void kernel_4x4(size_t start_row,size_t start_col,size_t invariant,Matrix& resul
 
          __m256d right_row_i_3 = _mm256_set1_pd(right(i,start_col+3));
          __m256d res_col_3 = _mm256_fmadd_pd(left_col_i,right_row_i_3,res_col_3);
-
     }
 
     _mm256_storeu_pd(&result(start_row,start_col),res_col_0);
