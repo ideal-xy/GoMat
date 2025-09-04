@@ -14,5 +14,9 @@ My next goal is to fix there bugs and gradually complete it.（2025.08.25）
 
 3.修复了 `loadFromCsv` 成员函数的 bug
 
+4.使用SIMD指令集实现大矩阵加法
+
+5.修复了特殊的矩阵填充函数
+
 
 
