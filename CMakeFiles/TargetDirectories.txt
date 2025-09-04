@@ -1,6 +1,0 @@
-/Users/xuyan/Desktop/GoMat/CMakeFiles/gomat.dir
-/Users/xuyan/Desktop/GoMat/CMakeFiles/edit_cache.dir
-/Users/xuyan/Desktop/GoMat/CMakeFiles/rebuild_cache.dir
-/Users/xuyan/Desktop/GoMat/test/CMakeFiles/tes.dir
-/Users/xuyan/Desktop/GoMat/test/CMakeFiles/edit_cache.dir
-/Users/xuyan/Desktop/GoMat/test/CMakeFiles/rebuild_cache.dir
