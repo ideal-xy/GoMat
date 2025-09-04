@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <random>
 #include <algorithm>
 #include "vector.h"
 #include "matrix.h"
@@ -251,6 +252,21 @@ void Matrix::fillScaledIdentity(double k)
     for (size_t i =0;i<m_rows;++i)
     {
         (*this)(i,i) = k;
+    }
+}
+
+void Matrix::random(double lower_bound,double upper_bound)
+{
+    std::random_device seed;
+    std::mt19937 engine(seed());
+    std::uniform_real_distribution<double> generator(lower_bound,upper_bound);
+
+    for (size_t i = 0;i < m_rows;i++)
+    {
+        for (size_t j =0;j < m_cols;j++)
+        {
+            (*this)(i,j) = generator(engine);
+        }
     }
 }
 
