@@ -230,11 +230,13 @@ void Matrix::fillWithOneValue(double value)
         for (auto& row:m_mat)
         {
             std::fill(row.begin(),row.end(),value);
+            m_data.clear();
         }
     }
     else
     {
         std::fill(m_data.begin(),m_data.end(),value);
+        m_mat.clear();
     }
 }
 
@@ -250,7 +252,6 @@ void Matrix::fillScaledIdentity(double k)
     {
         (*this)(i,i) = k;
     }
-
 }
 
 Matrix Matrix::replicate(size_t rowTimes,size_t colTimes) const
