@@ -5,6 +5,7 @@
 #include "vector.h"
 #include "matrix.h"
 #include "utils.h"
+#include <immintrin.h>
 
 #define epsilon 1e-10
 using namespace gomat;
@@ -26,14 +27,36 @@ Matrix Matrix::operator+(const Matrix& mat) const// 加法
     {
         assert(m_cols == mat.m_cols || m_rows == mat.m_rows);
         Matrix sum_mat{m_rows,m_cols};
-
-        for (size_t r = 0;r < m_rows;++r )
+        // 如果是小矩阵的话，直接两层循环即可
+        if (!m_is_contiguous)
         {
-            for (size_t c = 0;c <  m_cols;++c)
+            for (size_t r = 0;r < m_rows;++r )
             {
-                sum_mat.m_mat[r][c] = m_mat[r][c] + mat.m_mat[r][c];
+                for (size_t c = 0;c <  m_cols;++c)
+                {
+                    sum_mat.m_mat[r][c] = m_mat[r][c] + mat.m_mat[r][c];
+                }
             }
         }
+        // 如果是使用连续内存的大矩阵的加法，我们使用SIMD指令集完成
+        else
+        {
+            size_t i = 0;
+            for (;i + 7 < m_cols * m_rows;i += 8)
+            {
+                __m512d left_vec = _mm512_loadu_pd(&m_data[i]);
+                __m512d right_vec = _mm512_loadu_pd(&(mat.m_data[i]));
+                __m512d result_vec = _mm512_add_pd(left_vec,right_vec);
+                
+                _mm512_storeu_pd(&(sum_mat.m_data[i]),result_vec);
+            }
+            // 剩下的元素按照传统方法处理
+            for (;i < m_cols * m_rows;i++)
+            {
+                sum_mat.m_data[i] = m_data[i] + mat.m_data[i];
+            }
+        }
+        
 
         return sum_mat;
     }
@@ -71,7 +94,7 @@ bool Matrix::operator==(const Matrix& other) const // 比较两个矩阵是否�
     return true;
 }
 
- bool Matrix::operator!=(const Matrix& other) const
+bool Matrix::operator!=(const Matrix& other) const
 {
     if(m_cols != other.m_cols || m_rows != other.m_rows)
     {
