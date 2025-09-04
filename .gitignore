@@ -2,8 +2,9 @@
 Makefile
 
 
-/build/
+build/
 
-/CMakeFiles/
+.DS_Store
+CMakeFiles/
 
-/docs/
+docs/
