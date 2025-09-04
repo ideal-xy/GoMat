@@ -51,7 +51,7 @@ void Matrix::loadFromCsv(const std::string& filename)
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        throw std::runtime_error("File open failure"+filename);
+        throw std::runtime_error("File open failure:"+filename);
     }
 
     std::vector<std::vector<double>> data; // 存储矩阵
@@ -78,20 +78,21 @@ void Matrix::loadFromCsv(const std::string& filename)
             }
             catch(const std::exception& e)
             {
-                std::cerr << e.what() << '\n';
+                throw std::runtime_error("Invalid data in CSV: " + std::string(e.what()));
             }
-
-            if(data.empty()) // 第一次循环，矩阵为空，得到预期的列数
-            {
-                expectedCol = row.size();
-            }
-            else if (row.size() != expectedCol) // 如果存在某一行元素个数不等于第一行,那么报错
-            {
-                throw std::runtime_error("dismatched row sizes in csv file,not suitable for a matrix");
-            }
-
-            data.push_back(row); //将存储数字的vector压入矩阵
         }  
+
+        if(data.empty()) // 第一次循环，矩阵为空，得到预期的列数
+        {
+            expectedCol = row.size();
+        }
+        else if (row.size() != expectedCol) // 如果存在某一行元素个数不等于第一行,那么报错
+        {
+            throw std::runtime_error("Mismatched row sizes in CSV file,not suitable for a matrix");
+        }
+
+        data.push_back(row); //将存储数字的vector压入矩阵
+
         m_cols = data[0].size();
         m_rows = data.size();
         m_mat = data;   
@@ -101,12 +102,19 @@ void Matrix::loadFromCsv(const std::string& filename)
             m_is_contiguous = true;
             this->toContiguous();
         }
+
+        else
+        {
+            m_is_contiguous = false;
+            m_data.clear();
+        }
     }
 }
 
 } //  namespace
 
 namespace gomat {
+    
 void Matrix::matrixToCsv(const std::string& filename,int precision,char comma)
 {
     size_t dotPos = filename.find_last_of('.'); // 检查文件拓展名是否是.csv
@@ -126,7 +134,7 @@ void Matrix::matrixToCsv(const std::string& filename,int precision,char comma)
     std::ofstream file(filename);
     if( !file.is_open())
     {
-        throw std::runtime_error("fail to open" + filename);
+        throw std::runtime_error("fail to open :" + filename);
     }
 
     file  << std::fixed << std::setprecision(precision);
@@ -148,7 +156,8 @@ void Matrix::matrixToCsv(const std::string& filename,int precision,char comma)
     file.close();
 
 } 
-}
+
+} // namespace 
 
 namespace gomat{
 std::istream& operator>> (std::istream& in, Matrix& mat)
@@ -167,7 +176,9 @@ std::istream& operator>> (std::istream& in, Matrix& mat)
 } // namespace
 
 namespace gomat{
-
+/*
+对标准输出的重载是与矩阵的存储形式独立的
+*/
 std::ostream& operator<<(std::ostream& out, const Matrix& mat) {
     const int cell_width = 6;  // 每个元素的打印宽度
     const int last_cell_width = 1;  // 最后一个元素的宽度（不需要对齐）
@@ -188,7 +199,8 @@ std::ostream& operator<<(std::ostream& out, const Matrix& mat) {
             if (j == mat.getCols() - 1) 
             {
                 out << mat(i, j);
-            } else 
+            }
+            else 
             {
                 out << std::setw(cell_width) << std::left << mat(i, j);
             }
