@@ -22,16 +22,16 @@ void kernel_4x4(size_t start_row,size_t start_col,size_t invariant,Matrix& resul
         __m256d left_col_i = _mm256_loadu_pd(&left.at(start_row,i));
     
         __m256d right_row_i_0 = _mm256_set1_pd(right(i,start_col));
-        __m256d res_col_0 = _mm256_fmadd_pd(left_col_i,right_row_i_0,res_col_0);
+        res_col_0 = _mm256_fmadd_pd(left_col_i,right_row_i_0,res_col_0);
 
         __m256d right_row_i_1 = _mm256_set1_pd(right(i,start_col+1));
-        __m256d res_col_1 = _mm256_fmadd_pd(left_col_i,right_row_i_1,res_col_1);
+        res_col_1 = _mm256_fmadd_pd(left_col_i,right_row_i_1,res_col_1);
 
         __m256d right_row_i_2 = _mm256_set1_pd(right(i,start_col+2));
-        __m256d res_col_2 = _mm256_fmadd_pd(left_col_i,right_row_i_2,res_col_2);
+        res_col_2 = _mm256_fmadd_pd(left_col_i,right_row_i_2,res_col_2);
 
          __m256d right_row_i_3 = _mm256_set1_pd(right(i,start_col+3));
-         __m256d res_col_3 = _mm256_fmadd_pd(left_col_i,right_row_i_3,res_col_3);
+        res_col_3 = _mm256_fmadd_pd(left_col_i,right_row_i_3,res_col_3);
     }
 
     _mm256_storeu_pd(&result(start_row,start_col),res_col_0);
@@ -60,7 +60,7 @@ Matrix Matrix::multiplyWithSimd(const Matrix& other) const
         }
     }
 
-    if (start_row == m_rows)
+    if (start_row == m_rows && start_col != m_cols)
     {
         for (;start_col < cols;++start_col)
         {
@@ -74,7 +74,7 @@ Matrix Matrix::multiplyWithSimd(const Matrix& other) const
             }
         }
     }
-    else if (start_col == m_cols)
+    else if (start_col == m_cols && start_row != m_rows)
     {
        for (size_t j =0;j < cols;++j)
        {
@@ -88,7 +88,7 @@ Matrix Matrix::multiplyWithSimd(const Matrix& other) const
            }
        }
     }
-    else
+    else if (start_row != m_rows && start_col != m_cols)
     {
         size_t temp_row = start_row;
         for (size_t j =0;j < cols;++j)
@@ -114,7 +114,9 @@ Matrix Matrix::multiplyWithSimd(const Matrix& other) const
                 }
             }
         }    
-    }    
+    }  
+    
+    return result;
 }
     
  
