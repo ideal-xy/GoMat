@@ -1,26 +1,29 @@
 #include <iostream>
+#include <chrono>
 #include "gomat.h"
 
-int main() {
+int main() 
+{
     
-    gomat::Matrix mat(3, 3);
-    
-    mat << 1, 2, 3, 
-           4, 5, 6,  
-           1, 3, 6;
+    gomat::Matrix mat(1000,1000);
+    gomat::Matrix mat2(1000,1000);
 
-    auto view = mat.colView(1);
-    auto view2 = mat.rowView(2);
-    auto view3 = mat.diagonalView();
-    auto view4 = mat.replicateView(1,1);
-    auto view5 = mat.scalaredView(2);
-    auto view7 = mat.subMatrixView(0,3,0,3);
-    auto view6 = view4 * view5 * view4 + view4;
+    mat.random(1,2);
+    mat2.random(2,3);
 
-    std::cout << view7.eval() << std::endl;
-    
+    auto start = std::chrono::high_resolution_clock::now();
+    mat * mat2;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::cout << "SIMD type takes time: " << duration.count() / 1'000'000.0 << " s" << std::endl;
 
-    std::cout << gomat::version();
+    auto start1 = std::chrono::high_resolution_clock::now();
+    mat.multiplyDense(mat2);
+    auto end1 = std::chrono::high_resolution_clock::now();
+    auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+    std::cout << "Normal type takes time: " << duration1.count() / 1'000'000.0  << " s"<< std::endl;
+
+    std::cout << "Times is : " << (duration1.count()) / (duration.count()) << std::endl;
 
     return 0;
 }
