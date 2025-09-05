@@ -42,13 +42,13 @@ Matrix Matrix::operator+(const Matrix& mat) const// 加法
         else
         {
             size_t i = 0;
-            for (;i + 7 < m_cols * m_rows;i += 8)
+            for (;i + 3 < m_cols * m_rows;i += 4)
             {
-                __m512d left_vec = _mm512_loadu_pd(&m_data[i]);
-                __m512d right_vec = _mm512_loadu_pd(&(mat.m_data[i]));
-                __m512d result_vec = _mm512_add_pd(left_vec,right_vec);
+                __m256d left_vec = _mm256_loadu_pd(&m_data[i]);
+                __m256d right_vec = _mm256_loadu_pd(&(mat.m_data[i]));
+                __m256d result_vec = _mm256_add_pd(left_vec,right_vec);
                 
-                _mm512_storeu_pd(&(sum_mat.m_data[i]),result_vec);
+                _mm256_storeu_pd(&(sum_mat.m_data[i]),result_vec);
             }
             // 剩下的元素按照传统方法处理
             for (;i < m_cols * m_rows;i++)
@@ -117,7 +117,7 @@ Matrix Matrix::operator* (const Matrix& mat) const // 矩阵乘法
    
    if(m_is_contiguous || mat.m_is_contiguous)
    {
-       return multiplyLarge(mat);
+       return multiplyWithSimd(mat);
    }
    else
    {
