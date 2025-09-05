@@ -57,7 +57,7 @@ public:
     //尺寸变换
     void resize(size_t row,size_t col);
 
-    // 基本特征
+    //基本特征
     size_t getRows() const;
     size_t getCols() const ;
     bool isEmpty(double epsilon) const;
@@ -134,7 +134,9 @@ public:
     void fillWithData(const std::vector<std::vector<double>>& data);
     void fillWithOneValue(double value);
     void fillScaledIdentity(double k);
-    // void fillRandomValue();
+
+    void random(double lower_bound,double upper_bound);
+   
 
     //特殊矩阵（静态方法）
     // static Matrix ones(size_t row,size_t cols);
