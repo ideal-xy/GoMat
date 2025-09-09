@@ -5,7 +5,11 @@
 #include "vector.h"
 #include "matrix.h"
 #include "utils.h"
+#ifdef __x86_64__
 #include <immintrin.h>
+#elif defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 
 #define epsilon 1e-10
 using namespace gomat;
@@ -13,53 +17,74 @@ using namespace gomat;
 double& Matrix::operator()(size_t row,size_t col)
 {
     
-    return getElement(row,col);
+    return m_is_contiguous ? m_data[col * m_rows + row] : m_mat[row][col];
 }
 
 
 double Matrix::operator()(size_t row,size_t col) const
 {
-    // assert(row < m_rows && col < m_cols);
-    return getEle(row,col);
+   
+    return m_is_contiguous ? m_data[col * m_rows + row] : m_mat[row][col];
 }
 
-Matrix Matrix::operator+(const Matrix& mat) const// 加法
-    {
-        assert(m_cols == mat.m_cols || m_rows == mat.m_rows);
-        Matrix sum_mat{m_rows,m_cols};
-        // 如果是小矩阵的话，直接两层循环即可
-        if (!m_is_contiguous)
-        {
-            for (size_t r = 0;r < m_rows;++r )
-            {
-                for (size_t c = 0;c <  m_cols;++c)
-                {
-                    sum_mat.m_mat[r][c] = m_mat[r][c] + mat.m_mat[r][c];
-                }
-            }
-        }
-        // 如果是使用连续内存的大矩阵的加法，我们使用SIMD指令集完成
-        else
-        {
-            size_t i = 0;
-            for (;i + 3 < m_cols * m_rows;i += 4)
-            {
-                __m256d left_vec = _mm256_loadu_pd(&m_data[i]);
-                __m256d right_vec = _mm256_loadu_pd(&(mat.m_data[i]));
-                __m256d result_vec = _mm256_add_pd(left_vec,right_vec);
-                
-                _mm256_storeu_pd(&(sum_mat.m_data[i]),result_vec);
-            }
-            // 剩下的元素按照传统方法处理
-            for (;i < m_cols * m_rows;i++)
-            {
-                sum_mat.m_data[i] = m_data[i] + mat.m_data[i];
-            }
-        }
-        
+Matrix Matrix::operator+(const Matrix& mat) const // 加法
+{
+    // 断言检查：确保两个矩阵的维度相同
+    assert(m_cols == mat.m_cols && m_rows == mat.m_rows);
+    Matrix sum_mat{m_rows, m_cols};
 
-        return sum_mat;
+    // 如果是非连续内存的小矩阵，直接使用双层循环
+    if (!m_is_contiguous)
+    {
+        for (size_t r = 0; r < m_rows; ++r)
+        {
+            for (size_t c = 0; c < m_cols; ++c)
+            {
+                sum_mat.m_mat[r][c] = m_mat[r][c] + mat.m_mat[r][c];
+            }
+        }
     }
+    // 如果是使用连续内存的大矩阵，我们使用 SIMD 指令集加速
+    else
+    {
+        const size_t total_size = m_cols * m_rows;
+        size_t i = 0;
+
+#if defined(__x86_64__) || defined(_M_X64)
+        // --- Intel x86-64 AVX 实现 ---
+        // 每次处理 4 个 double
+        for (; i + 3 < total_size; i += 4)
+        {
+            __m256d left_vec = _mm256_loadu_pd(&m_data[i]);
+            __m256d right_vec = _mm256_loadu_pd(&(mat.m_data[i]));
+            __m256d result_vec = _mm256_add_pd(left_vec, right_vec);
+            _mm256_storeu_pd(&(sum_mat.m_data[i]), result_vec);
+        }
+
+#elif defined(__aarch64__)
+        for (; i + 3 < total_size; i += 4)
+        {
+            // 加载第一个 2-element vector
+            float64x2_t left_vec1 = vld1q_f64(&m_data[i]);
+            float64x2_t right_vec1 = vld1q_f64(&(mat.m_data[i]));
+            float64x2_t result_vec1 = vaddq_f64(left_vec1, right_vec1);
+            vst1q_f64(&(sum_mat.m_data[i]), result_vec1);
+            
+            // 加载第二个 2-element vector
+            float64x2_t left_vec2 = vld1q_f64(&m_data[i + 2]);
+            float64x2_t right_vec2 = vld1q_f64(&(mat.m_data[i + 2]));
+            float64x2_t result_vec2 = vaddq_f64(left_vec2, right_vec2);
+            vst1q_f64(&(sum_mat.m_data[i + 2]), result_vec2);
+        }
+#endif
+        for (; i < total_size; ++i)
+        {
+            sum_mat.m_data[i] = m_data[i] + mat.m_data[i];
+        }
+    }
+
+    return sum_mat;
+}
 
 Matrix Matrix::operator-(const Matrix& mat) const
 {
@@ -113,16 +138,7 @@ bool Matrix::operator!=(const Matrix& other) const
 
 Matrix Matrix::operator* (const Matrix& mat) const // 矩阵乘法
 {
-   Utils::checkMultiplicationDims(*this,mat);
-   
-   if(m_is_contiguous || mat.m_is_contiguous)
-   {
-       return multiplyWithSimd(mat);
-   }
-   else
-   {
-       return multiplySmall(mat);
-   }
+   return (m_is_contiguous || mat.m_is_contiguous)? multiplyWithMulThread(mat) : multiplySmall(mat);
 }
 
 Matrix Matrix::operator*=(double scalar)

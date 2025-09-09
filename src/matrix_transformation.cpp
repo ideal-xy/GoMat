@@ -74,13 +74,11 @@ void Matrix::resize(size_t row,size_t col)
     
     if(m_is_contiguous)
     {
-        std::vector<double>vec (row * col,0.0);
-        m_data.swap(vec);
+        m_data.resize(row * col, 0.0);
     }
     if(!m_is_contiguous)
     {
-        std::vector<std::vector<double>> vec(row,std::vector<double>(col,0));
-        m_mat.swap(vec);
+        m_mat.resize(row, std::vector<double>(col, 0.0));
     }
 }
 
