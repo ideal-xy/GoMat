@@ -18,5 +18,11 @@ My next goal is to fix there bugs and gradually complete it.（2025.08.25）
 
 5.修复了特殊的矩阵填充函数
 
+6.实现了矩阵类私有成员`std::vector<double>`的内存对齐
+
+7.实现了对arm64和x86的自动兼容
+
+
+
 
 
