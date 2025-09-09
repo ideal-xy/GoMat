@@ -3,7 +3,7 @@
 #include "matrix.h"
 #include <iostream>
 
-using namespace gomat;
+namespace gomat{
 
 Solution Linear_Solver::gausslian(Matrix& A_mat,Vector b_vec) const
 {
@@ -151,4 +151,5 @@ std::ostream& operator<<(std::ostream& out,Solution solution)
         out << ",among which k_1,k_2,... is any real number ";
     }
 
+}
 }
