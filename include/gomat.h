@@ -1,5 +1,6 @@
-// 跨平台动态库导出宏定义
-// 头文件包含
+#ifndef GOMAT_H
+#define GOMAT_H
+
 #include "matrix.h"
 #include "vector.h"
 #include "linear_solver.h"
@@ -21,4 +22,6 @@ namespace gomat {
     }
 }
 
+
+#endif
 
