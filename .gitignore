@@ -1,12 +1,18 @@
 # 忽略 Makefile
 Makefile
 
-
+.DS_Store
 build/
 
-.DS_Store
 CMakeFiles/
-
 build_x86/
-
 docs/
+build_test/
+
+test.py
+
+build_and_run_x86.sh
+
+docs/、
+
+线性代数库优化.md
