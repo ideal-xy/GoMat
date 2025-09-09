@@ -8,8 +8,13 @@
 #include <string>
 #include <fstream>
 #include <tuple>
-#include "vector.h"
-
+// #include "vector.h"
+#include "mem_alloc.h"
+#ifdef __x86_64__
+#include <immintrin.h>
+#elif defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 namespace gomat {
     
 template <typename Derived> class MatrixView;
@@ -27,13 +32,13 @@ class Matrix
 {
 private:
     std::vector<std::vector<double>> m_mat;
-    std::vector<double> m_data;
+    std::vector<double,SpecialAllocator<double,32>> m_data;
     size_t m_rows;
     size_t m_cols;
     bool m_is_contiguous; // 是否使用连续存储以提高大矩阵运算性能
 
-    double& getElement(size_t row,size_t col);
-    double getEle(size_t row,size_t col) const;
+    inline double& getElement(size_t row,size_t col);
+    inline double getEle(size_t row,size_t col) const;
 
 public:
     
@@ -46,6 +51,7 @@ public:
     // Matrix(const std::vector<double>,size_t row,size_t col);
     Matrix(Matrix&& other) noexcept;
     Matrix(const Matrix& other);
+    Matrix(Matrix& other);
     Matrix(std::vector<std::vector<double>>&& other) noexcept;
     ~Matrix() = default;
 
@@ -97,6 +103,8 @@ public:
     Matrix multiplyDiagonal(const Matrix& other) const;
     Matrix multiplyUpperTriangle(const Matrix& other) const;
     Matrix multiplyWithSimd(const Matrix& other) const;
+    Matrix multiplyWithThreads(const Matrix& other) const;
+    Matrix multiplyWithMulThread(const Matrix& other) const;
     
     /*
     multiplyBySimd()是使用SIMD指令集进行矩阵乘法计算，在对矩阵进行4 * 4的分块之后，把每一块作为参数
@@ -114,8 +122,8 @@ public:
     Matrix operator,(const Matrix& mat) const;
     Matrix& operator=(Matrix&& other) noexcept; // 移动赋值构造函数
    
-    // 这个函数单单是为了写矩阵乘法用的,只读不修改
-    const double& at(size_t row, size_t col) const 
+    // 这个函数单单是为了写大矩阵乘法用的,只读不修改
+    inline const double& at(size_t row, size_t col) const 
     {
         return m_data[col * m_cols + row];
     }
