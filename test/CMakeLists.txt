@@ -1,17 +1,15 @@
-#创建测试可执行文件
-# add_executable(tes main.cpp)
+
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
+# 本项目的实现并没有利用第三方库，上面的两个库都是为了性能测试对比使用的（这俩是结合使用的）
 
 add_executable(tes main.cpp)
-# 链接库
-# 将我们的 gomat 库链接到 tes 可执行文件。
-# PRIVATE 意味着链接关系只对 tes 本身有效。
+
+#link
 target_include_directories(tes PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(tes PRIVATE gomat Eigen3::Eigen OpenMP::OpenMP_CXX)
 
-# 构建后自动运行测试
-# 这个命令会在每次成功编译 tes 目标后，自动执行它
+#自动运行测试
 add_custom_command(TARGET tes POST_BUILD
     COMMAND $<TARGET_FILE:tes>
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
