@@ -7,7 +7,8 @@
 namespace gomat{
 
 inline void transpose_4x4(__m256d& in0, __m256d& in1, __m256d& in2, __m256d& in3,
-                          __m256d& out0, __m256d& out1, __m256d& out2, __m256d& out3) {
+                          __m256d& out0, __m256d& out1, __m256d& out2, __m256d& out3) 
+{
     __m256d tmp0 = _mm256_unpacklo_pd(in0, in1);
     __m256d tmp1 = _mm256_unpackhi_pd(in0, in1);
     __m256d tmp2 = _mm256_unpacklo_pd(in2, in3);
@@ -117,7 +118,8 @@ inline void kernel_4x4(size_t start_row, size_t start_col, size_t k_start, size_
     res_col_1 = _mm256_permute2f128_pd(tmp1, tmp3, 0x20);
     res_col_2 = _mm256_permute2f128_pd(tmp0, tmp2, 0x31);
     res_col_3 = _mm256_permute2f128_pd(tmp1, tmp3, 0x31);
-
+     
+    //存储结果
     _mm256_store_pd(&result(start_row, start_col), res_col_0);
     _mm256_store_pd(&result(start_row, start_col + 1), res_col_1);
     _mm256_store_pd(&result(start_row, start_col + 2), res_col_2);
