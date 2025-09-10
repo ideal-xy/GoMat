@@ -138,30 +138,31 @@ bool Matrix::operator!=(const Matrix& other) const
 
 Matrix Matrix::operator* (const Matrix& mat) const // 矩阵乘法
 {
-   return (m_is_contiguous || mat.m_is_contiguous)? multiplyWithMulThread(mat) : multiplySmall(mat);
+   return (m_is_contiguous || mat.m_is_contiguous) ? multiplyWithMulThread(mat) : multiplySmall(mat);
 }
 
 Matrix Matrix::operator*=(double scalar)
 {
-    Matrix mul_mat;
-    mul_mat.m_mat.assign(m_rows, std::vector<double>(mul_mat.m_cols, 0.0)); // 批量初始化，这比resize好
-    mul_mat.m_cols = mul_mat.m_cols;
-    mul_mat.m_rows = m_rows;
-
-    if (std::abs(scalar) <= 1e-10)
+    size_t rows = this->getRows();
+    size_t cols = this->getCols();
+    bool flag = this->isContiguous();
+    if (flag)
     {
-        return mul_mat;
+        Matrix result(rows,cols,true);
+        std::transform(m_data.begin(),m_data.end(),result.m_data.begin(),[scalar](double ele){ele *= scalar;});
+
+        return result;
     }
-
-    for(auto& row:mul_mat.m_mat)
+    else
     {
-        for (double ele:row)
+        Matrix result(rows,cols,flag);
+        for (size_t i = 0;i < rows;i++)
         {
-            ele = ele * scalar;
+            std::transform(m_mat[i].begin(),m_mat[i].end(),result.m_mat[i].begin(),[scalar](double ele){ele *= scalar;});
         }
-    }
 
-    return mul_mat;   
+        return result;
+    }
 }
 
 Matrix& Matrix::operator=(Matrix&& other) noexcept
