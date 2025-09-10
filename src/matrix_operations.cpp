@@ -149,7 +149,7 @@ Matrix Matrix::operator*=(double scalar)
     if (flag)
     {
         Matrix result(rows,cols,true);
-        std::transform(m_data.begin(),m_data.end(),result.m_data.begin(),[scalar](double ele){ele *= scalar;});
+        std::transform(m_data.begin(),m_data.end(),result.m_data.begin(),[scalar](double ele){return ele * scalar;});
 
         return result;
     }
@@ -158,7 +158,7 @@ Matrix Matrix::operator*=(double scalar)
         Matrix result(rows,cols,flag);
         for (size_t i = 0;i < rows;i++)
         {
-            std::transform(m_mat[i].begin(),m_mat[i].end(),result.m_mat[i].begin(),[scalar](double ele){ele *= scalar;});
+            std::transform(m_mat[i].begin(),m_mat[i].end(),result.m_mat[i].begin(),[scalar](double ele){return ele * scalar;});
         }
 
         return result;
