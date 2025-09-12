@@ -19,7 +19,12 @@ inline void transpose_4x4(__m256d& in0, __m256d& in1, __m256d& in2, __m256d& in3
     out2 = _mm256_permute2f128_pd(tmp0, tmp2, 0x31);
     out3 = _mm256_permute2f128_pd(tmp1, tmp3, 0x31);
 }
-
+/*
+这个函数实现了4*4小矩矩阵的计算，前面的部分是为了将存储结果的矩阵的一小块进行transpose
+这个函数还接受size_t k_start, size_t k_end,而不是直接在关于k的循环中遍历从0到左矩阵的列数的所有值
+这适配我们后面的打包分块策略，packed_left和packed_right就是指向我们打包的数据的指针
+这个函数之所以体积这么大就是因为手动循环展开，内部逻辑是十分简单的
+*/
 inline void kernel_4x4(size_t start_row, size_t start_col, size_t k_start, size_t k_end, 
     Matrix& result, const double* packed_left, const double* packed_right, const Matrix& right)
 {
@@ -126,31 +131,7 @@ inline void kernel_4x4(size_t start_row, size_t start_col, size_t k_start, size_
     _mm256_store_pd(&result(start_row, start_col + 3), res_col_3);
 }
 
-inline void kernel_4x4(size_t start_row, size_t start_col, size_t k_start, size_t k_end, 
-                       Matrix& result, const double* packed_left, const double* packed_right)                
-{
-    __m256d res_col_0 = _mm256_load_pd(&result(start_row, start_col));
-    __m256d res_col_1 = _mm256_load_pd(&result(start_row, start_col + 1));
-    __m256d res_col_2 = _mm256_load_pd(&result(start_row, start_col + 2));
-    __m256d res_col_3 = _mm256_load_pd(&result(start_row, start_col + 3));
 
-    for (size_t i = 0; i < k_end - k_start; i++) 
-    {
-        _mm_prefetch(&packed_left[(i + 2) * 4], _MM_HINT_T0);
-        _mm_prefetch(&packed_right[(i + 2) * 4], _MM_HINT_T0);
-        __m256d left_col = _mm256_load_pd(&packed_left[i * 4]);
-        __m256d right_vec = _mm256_load_pd(&packed_right[i * 4]);
-        res_col_0 = _mm256_fmadd_pd(left_col, _mm256_broadcast_sd(reinterpret_cast<const double*>(&right_vec)), res_col_0);
-        res_col_1 = _mm256_fmadd_pd(left_col, _mm256_broadcast_sd(reinterpret_cast<const double*>(&right_vec)+1), res_col_1);
-        res_col_2 = _mm256_fmadd_pd(left_col, _mm256_broadcast_sd(reinterpret_cast<const double*>(&right_vec)+2), res_col_2);
-        res_col_3 = _mm256_fmadd_pd(left_col, _mm256_broadcast_sd(reinterpret_cast<const double*>(&right_vec)+3), res_col_3);
-    }
-
-    _mm256_store_pd(&result(start_row, start_col), res_col_0);
-    _mm256_store_pd(&result(start_row, start_col + 1), res_col_1);
-    _mm256_store_pd(&result(start_row, start_col + 2), res_col_2);
-    _mm256_store_pd(&result(start_row, start_col + 3), res_col_3);
-}
 
 inline void kernel_small(size_t start_row, size_t start_col, size_t k_start, size_t k_end, size_t r, size_t c, Matrix& result, 
     const Matrix& left, const Matrix& right,const double* packed_right)
@@ -198,15 +179,19 @@ Matrix Matrix::multiplyWithMulThread(const Matrix& other) const
     const size_t KERNEL_BLOCK_ROWS = 4;
     const size_t KERNEL_BLOCK_COLS = 4;
     const size_t KERNEL_BLOCK_K = 64;
+    /*
+    大写字母设置的三个常数是为了分块策略
+    */
 
+    Matrix result(rows, cols, true); // 使用连续存储
 
-    Matrix result(rows, cols, true); 
-
-    const unsigned int nums = 8;
+    const unsigned int nums = 8; // 手动设置线程数
     std::vector<std::thread> threads;
     threads.reserve(nums);
-    size_t rows_per_thread = (rows + nums - 1) / nums;
-
+    size_t rows_per_thread = (rows + nums - 1) / nums;// 每个线程处理多少行
+    /*
+    可以看到，我分配给每个线程的任务还是2D的，因为只设置了每一个线程改处理的行数
+    */
     for (unsigned int t = 0; t < nums; ++t) 
     {
         const size_t start_row_for_thread = t * rows_per_thread;
@@ -216,25 +201,25 @@ Matrix Matrix::multiplyWithMulThread(const Matrix& other) const
         {
             continue; 
         }
-        threads.emplace_back([=, &result, &other, this] 
+        threads.emplace_back([=, &result, &other, this]  // 以传值的方式补货外部变量
         {
             std::vector<double,SpecialAllocator<double,32>> packed_left(KERNEL_BLOCK_ROWS * KERNEL_BLOCK_K);
             std::vector<double,SpecialAllocator<double,32>> packed_right(KERNEL_BLOCK_K * KERNEL_BLOCK_COLS);
-            for (size_t k = 0;k < invariant;k+= KERNEL_BLOCK_K)
+            for (size_t k = 0;k < invariant;k+= KERNEL_BLOCK_K) // 一次处理KERNEL_BLOCK_K列（左矩阵的列）
             {
                 size_t k_end = std::min(k + KERNEL_BLOCK_K,invariant);
-                size_t bk_actual = k_end  - k;
+                size_t bk_actual = k_end  - k; // k-end才是当次循环k的上界
                 for (size_t i = start_row_for_thread;i < end_row_for_thread;i+= KERNEL_BLOCK_ROWS)
                 {
                     const size_t i_end = std::min(i + KERNEL_BLOCK_ROWS, end_row_for_thread);
                     const size_t num_rows_left = i_end - i;
   
-                    if (num_rows_left == KERNEL_BLOCK_ROWS)
+                    if (num_rows_left == KERNEL_BLOCK_ROWS) 
                     {
-                        for (size_t kk = 0; kk < bk_actual; ++kk)
+                        for (size_t kk = 0; kk < bk_actual; ++kk) // 打包左矩阵的一小块，严格的说，是bk_actua个4维列向量
                         {
                             __m256d vec = _mm256_load_pd(&(*this).at(i, k + kk));
-                            _mm256_store_pd(&packed_left[kk * 4], vec);
+                            _mm256_store_pd(&packed_left[kk * 4], vec); 
                         }
                     }
 
@@ -273,7 +258,6 @@ Matrix Matrix::multiplyWithMulThread(const Matrix& other) const
         });
 
     }
-    // 3. 等待所有线程完成
     for (auto& thread : threads) 
     { 
         thread.join();
@@ -285,7 +269,9 @@ Matrix Matrix::multiplyWithMulThread(const Matrix& other) const
 
 } // namespace 
 
-
+/*
+在写好上面的代码后，我直接把上面的代码喂给llm，生成了下面的适配arm64平台的版本
+*/
 #elif defined(__aarch64__)
 #include "matrix.h"
 #include <arm_neon.h>
