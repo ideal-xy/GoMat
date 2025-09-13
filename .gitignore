@@ -8,11 +8,14 @@ CMakeFiles/
 build_x86/
 docs/
 build_test/
-
+.vscode/
+build_debug/
+debug/
 test.py
 
 build_and_run_x86.sh
 
-docs/、
+docs/
+test/CMakeFiles/Makefile
 
 线性代数库优化.md
