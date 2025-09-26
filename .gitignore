@@ -3,6 +3,7 @@ Makefile
 
 .DS_Store
 build/
+ff
 
 CMakeFiles/
 build_x86/
