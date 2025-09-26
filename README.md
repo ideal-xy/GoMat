@@ -1,10 +1,11 @@
 # Introoduction
 
-This is a lightweight library for linear algebra, with C++ language ,constructed with CMake.
++ 我准备在先前的线性代数库基础上开发一个数据分析库，全部由C++实现，不借助第三方库
 
-But it's immature, with a lot of bugs and flaws.
++ 我是一名数学与应用数学专业的本科三年级学生，目前就读于BNU，刚刚开始学习写代码与开发
 
-My next goal is to fix there bugs and gradually complete it.（2025.08.25）
++ 我热爱代数学，也喜欢大数据。因此我暑假开发了一个底层的线性代数计算引擎，再在此基础之上开发数据分析库
+
 
 # Update Log
 
@@ -21,6 +22,8 @@ My next goal is to fix there bugs and gradually complete it.（2025.08.25）
 6.实现了矩阵类私有成员`std::vector<double>`的内存对齐
 
 7.实现了对arm64和x86的自动兼容
+
+8.添加了 dataframe 和 series 目录，开始实现基本的数据结构。
 
 
 
