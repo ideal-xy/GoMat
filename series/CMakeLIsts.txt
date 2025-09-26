@@ -1,0 +1,15 @@
+# in series/CMakeLists.txt
+
+add_library(gomat_series STATIC
+    src/series.cpp
+)
+
+# 指定头文件目录
+target_include_directories(gomat_series PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# 链接到核心库，因为 Series 的数值操作最终可能需要调用 core 的功能
+# 使用 PUBLIC 关键字，这样依赖于 series 的库也能自动获取 core 的头文件
+target_link_libraries(gomat_series PUBLIC gomat_core)

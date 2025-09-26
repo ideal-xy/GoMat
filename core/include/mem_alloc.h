@@ -1,4 +1,3 @@
-
 #ifndef MEM_ALLOC_H
 #define MEM_ALLOC_H
 // 我们希望我们给std::vector分配的内存都是对齐的，因此需要实现一个分配器

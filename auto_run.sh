@@ -19,4 +19,4 @@ echo "--构建项目--"
 cmake --build ${BUILD_DIR}
 
 echo "--运行测试--"
-"${BUILD_DIR}/test/tes"
+"${BUILD_DIR}/tests/tes"

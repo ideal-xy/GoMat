@@ -12,9 +12,8 @@ int main()
     std::cout << "硬件支持 " << n_threads << " 个并发线程。" << std::endl;
     Eigen::setNbThreads(n_threads); 
  
-.
-    gomat::Matrix mat(1000, 1000, true);
-    gomat::Matrix mat2(1000, 1000, true);
+    gomat::Matrix mat(1000,1000,true);
+    gomat::Matrix mat2(1000,1000,true);
     mat.random(1, 2);
     mat2.random(2, 3);
 
