@@ -9,10 +9,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 add_subdirectory(core)
-add_subdirectory(dataframe)
 add_subdirectory(series)
 
-
-add_subdirectory(tests)
-add_subdirectory(debug)
+# 可选的测试与调试目录（避免缺失依赖导致配置失败）
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests)
+  add_subdirectory(tests)
+endif()
+if(EXISTS ${CMAKE_SOURCE_DIR}/debug)
+  add_subdirectory(debug)
+endif()
 
