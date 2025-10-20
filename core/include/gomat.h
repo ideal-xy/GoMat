@@ -5,7 +5,7 @@
 #include "vector.h"
 #include "linear_solver.h"
 #include "matrix_view.h"
-#include "util.h"
+#include "utils.h"
 #include "matrix_stream.h"
 #include "vector_stream.h"
 #include "mem_alloc.h"

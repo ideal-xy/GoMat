@@ -30,19 +30,19 @@ public:
 
     // householder变换部分的辅助函数
     static Vector householder_normal_vector(const Vector& vec);
-    static void householder_left_mulyiply(Matrix& A,Matrix& U,const Vector& vec);
-    static void householder_right_multiply(Matrix& A,Matrix& V,const Vector& vec);
-    static void bidiagonalize(Matrix& A,Matrix& U,Matrix& V);
+    static void householder_left_mulyiply(Matrix<>& A,Matrix<>& U,const Vector& vec);
+    static void householder_right_multiply(Matrix<>& A,Matrix<>& V,const Vector& vec);
+    static void bidiagonalize(Matrix<>& A,Matrix<>& U,Matrix<>& V);
 
     //QR迭代辅助函数
     static void compute_givens(double a,double b,double& cos_theta,double& sin_theta);
-    static void apply_givens_left(Matrix& A,size_t i,size_t j,double cos_theta,double sin_theta);
-    static void apply_givens_right(Matrix& A,size_t i,size_t j,double cos_theta,double sin_theta);
+    static void apply_givens_left(Matrix<>& A,size_t i,size_t j,double cos_theta,double sin_theta);
+    static void apply_givens_right(Matrix<>& A,size_t i,size_t j,double cos_theta,double sin_theta);
     static double compute_wilkinson_shift(double a,double b,double c,double d);
-    static void QrIteration(Matrix& B,Matrix& U,Matrix& V,double epsilon = 1e-10,int max_iteration = 100);
+    static void QrIteration(Matrix<>& B,Matrix<>& U,Matrix<>& V,double epsilon = 1e-10,int max_iteration = 100);
 
     // 矩阵的一些辅助检查
-    static void checkMultiplicationDims(const Matrix& a, const Matrix& b);
+    static void checkMultiplicationDims(const Matrix<>& a, const Matrix<>& b);
 };
 } //namespace
 #endif

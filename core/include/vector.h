@@ -5,8 +5,8 @@
 #include <iostream>
 #include <vector>
 #include <cstddef>
+#include "matrix.h"
 namespace gomat {
-class Matrix;
 struct Solution;
 class VectorStream;
 
@@ -60,7 +60,7 @@ public:
     static Vector zeros(size_t nums);
 
     // replicate方法
-    Matrix replicate(size_t rowTimes,size_t colTimes) const;
+    Matrix<> replicate(size_t rowTimes,size_t colTimes) const;
     
     //流式赋值
     VectorStream operator<<(double value);

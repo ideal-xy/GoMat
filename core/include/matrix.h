@@ -2,13 +2,12 @@
 #define MATRIX_H
 
 #include <vector>
-#include <utility>
 #include <cstddef>
-#include <numeric>
 #include <string>
-#include <fstream>
 #include <tuple>
-// #include "vector.h"
+#include <stdexcept>
+#include <algorithm>
+#include <ostream>
 #include "mem_alloc.h"
 #ifdef __x86_64__
 #include <immintrin.h>
@@ -17,162 +16,219 @@
 #endif
 namespace gomat {
     
+
+enum class Layout { ColMajor, RowMajor };
+
+// 前置声明供 MatrixT 使用视图与流类型
 template <typename Derived> class MatrixView;
-class TransposeView;
-class SubMatrixView;
-class ReplicateView;
-class DiagonalView;
-class RowView;
-class ColView;
-class ScalaredView;
+template<typename T, Layout L, typename Alloc> class TransposeView;
+template<typename T, Layout L, typename Alloc> class SubMatrixView;
+template<typename T, Layout L, typename Alloc> class ReplicateView;
+template<typename T, Layout L, typename Alloc> class DiagonalView;
+template<typename T, Layout L, typename Alloc> class RowView;
+template<typename T, Layout L, typename Alloc> class ColView;
+template<typename T, Layout L, typename Alloc> class ScalaredView;
 class Vector;
-class MatrixStream;
+template<typename T, Layout L, typename Alloc> class MatrixStream;
 
-class Matrix
-{
+// 预声明模板：将主模板命名为 Matrix，并为 T 提供默认为 double
+template<typename T = double, Layout L = Layout::ColMajor,
+         typename Alloc = SpecialAllocator<T, 32>> class Matrix;
+
+template<typename T, Layout L,
+         typename Alloc>
+class Matrix {
 private:
-    std::vector<std::vector<double>> m_mat;
-    std::vector<double,SpecialAllocator<double,32>> m_data; // 按照32字节内存对齐
-    size_t m_rows;
-    size_t m_cols;
-    bool m_is_contiguous; // 是否使用连续存储(列优先)
-
-    inline double& getElement(size_t row,size_t col);
-    inline double getEle(size_t row,size_t col) const;
-
+    std::vector<T, Alloc> m_data;
+    size_t m_rows{0};
+    size_t m_cols{0};
 public:
-    
-    // 构造函数和析构函数
-    Matrix() {};
-    Matrix(size_t rows,size_t cols,bool use_contiguous = false);
-    // Matrix(std::initializer_list<double> list,size_t rows,size_t cols); // 支持列表初始化
-    Matrix(const std::vector<std::vector<double>>& data);
-    Matrix(const std::vector<double>& data,size_t rows,size_t cols);
-    // Matrix(const std::vector<double>,size_t row,size_t col);
-    Matrix(Matrix&& other) noexcept;
-    Matrix(const Matrix& other);
-    Matrix(Matrix& other);
-    Matrix(std::vector<std::vector<double>>&& other) noexcept;
-    ~Matrix() = default;
+    Matrix() = default;
+    Matrix(size_t rows, size_t cols) : m_data(rows * cols), m_rows(rows), m_cols(cols) {}
+    Matrix(size_t rows, size_t cols, bool /*use_contiguous*/) : m_data(rows * cols), m_rows(rows), m_cols(cols) {}
 
-    // 两种存储形式的相互转化，应付性能不敏感的操作
-    void toContiguous(); // 不连续存储转化为连续存储
-    void toNonContiguous(); // 连续存储转化为不连续存储
-    void ensureContiguousIfLarge(); // 设置存储类型自动检查+转换
+    // 兼容旧接口：从二维数组构造（按列主序填充）
+    Matrix(const std::vector<std::vector<T>>& data)
+    {
+        m_rows = data.size();
+        m_cols = m_rows ? data[0].size() : 0;
+        m_data.resize(m_rows * m_cols);
+        for (size_t j = 0; j < m_cols; ++j)
+            for (size_t i = 0; i < m_rows; ++i)
+                m_data[j * m_rows + i] = static_cast<T>(data[i][j]);
+    }
 
-    //尺寸变换
-    void resize(size_t row,size_t col);
+    Matrix(const std::vector<T>& data, size_t rows, size_t cols)
+    {
+        if (data.size() != rows * cols) throw std::invalid_argument("dismatched dimensions");
+        m_rows = rows; m_cols = cols; m_data.resize(rows * cols);
+        std::copy(data.begin(), data.end(), m_data.begin());
+    }
 
-    //基本特征
-    size_t getRows() const;
-    size_t getCols() const ;
+    inline T* data() const { return m_data.data();}
+
+    inline size_t getRows() const { return m_rows; }
+    inline size_t getCols() const { return m_cols; }
+
+    inline T& operator()(size_t row, size_t col) {
+        return (L == Layout::ColMajor) ? m_data[col * m_rows + row] : m_data[row * m_cols + col];
+    }
+    inline const T& operator()(size_t row, size_t col) const {
+        return (L == Layout::ColMajor) ? m_data[col * m_rows + row] : m_data[row * m_cols + col];
+    }
+
+    inline T* data() { return m_data.data(); }
+    inline const T* data() const { return m_data.data(); }
+
+    inline size_t leadingDimensionColMajor() const { return m_rows; }
+    inline size_t leadingDimensionRowMajor() const { return m_cols; }
+
+    void resize(size_t rows, size_t cols) 
+    {
+        m_rows = rows; m_cols = cols; m_data.resize(rows * cols);
+    }
+
+    // 兼容旧接口（统一连续存储后为 no-op）
+    inline void toContiguous() {}
+    inline void toNonContiguous() {}
+    inline void ensureContiguousIfLarge() {}
+
+    inline const T& at(size_t row, size_t col) const { return m_data[col * m_rows + row]; }
+
+    // 基本特征
+    inline bool isSquare() const { return m_rows == m_cols; }
+    inline bool isContiguous() const { return true; }
+    inline bool isLarge() const { return (m_rows >= 64 || m_cols >= 64); }
+
     bool isEmpty(double epsilon) const;
-    bool isSquare() const ;
+
     bool isDiagonal(double epsilon) const;
+
     bool isUpperTriangular(double epsilon) const;
+
     bool isLowerTriangular(double epsilon) const;
-    bool isLarge() const;
-    bool isContiguous() const;
 
-    //复杂特征
-    double determiant() const ; // 行列式
-    bool isInvertible() const; // 可逆否
-    double trace() const; // 迹是多少
-    int rank() const; // 秩是多少
-    double sum() const; // 所有元素的和
-    double product() const; // 所有元素的乘积
-    double frobeniusNorm() const; // Frobenius范数：(所有元素的平方和)^{1/2}
+    // 三类初等行变换
+    void rowInterchange(size_t i, size_t j);
 
-    // 复杂操作
-    std::tuple<int,Matrix> gaussElimination() const;// 返回值中的int times 代表的是进行第三类初等变换的次数，也就是交换两行的次数
-    std::tuple<Matrix,Matrix> QrDecompostion() const;
-    std::tuple<Matrix,Matrix>LuDecomposition() const;
-    std::tuple<Matrix,Matrix,Matrix>SvdDecomposition() const; 
-    Matrix inverse() const;
+    void rowMultiply(size_t row, double factor);
 
-    // 元素访问
-    double& operator()(size_t row,size_t col); // 允许修改
-    double operator()(size_t row,size_t col) const; //不允许修改
+    void rowAddition(size_t row1, size_t row2, double factor);
 
-    // generally, 分为大小两种矩阵乘法
+    // 变换
+    void transposeInPlace();
+
+    Matrix transposeByBlock(size_t blockSize) const;
+
+    Matrix transpose() const;
+
+    // 填充与构造
+    void fillWithData(const std::vector<std::vector<T>>& data);
+
+    void fillWithOneValue(T value);
+
+    void fillScaledIdentity(T k);
+
+    void random(T lower_bound, T upper_bound);
+
+    // 辅助
+    void erase() { m_data.clear(); m_rows = 0; m_cols = 0; }
+
+    Matrix subMatrix(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const;
+
+    T blockSum(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const;
+
+    // 复制扩展
+    Matrix replicate(size_t rowTimes, size_t colTimes) const;
+
+    // 算术
+    Matrix operator+(const Matrix& other) const;
+
+    Matrix operator-(const Matrix& other) const;
+
+    bool operator==(const Matrix& other) const;
+
+    bool operator!=(const Matrix& other) const;
+
+    // 乘法
+    Matrix multiplyDense(const Matrix& other) const;
+
+    Matrix multiplyDiagonal(const Matrix& other) const;
+
+    Matrix multiplyUpperTriangle(const Matrix& other) const;
+
+    Matrix multiplyWithMulThread(const Matrix& other) const;
     Matrix multiplyLarge(const Matrix& other) const;
     Matrix multiplySmall(const Matrix& other) const;
 
-    // concretely,不同的矩阵乘法
-    Matrix multiplyDense(const Matrix& other) const;
-    Matrix multiplyDiagonal(const Matrix& other) const;
-    Matrix multiplyUpperTriangle(const Matrix& other) const;
-    Matrix multiplyWithMulThread(const Matrix& other) const;
-    
-   
-    //基本的算数运运算符重载
-    Matrix operator+(const Matrix& other) const;
-    Matrix operator-(const Matrix& other) const;
-    Matrix operator*(const Matrix& mat) const;
+    Matrix operator*(const Matrix& other) const;
+
     Matrix operator*=(double scalar);
-    bool operator==(const Matrix& other) const;
-    bool operator!=(const Matrix& other) const;
-    Matrix operator,(const Vector& vec) const;
+
+    // 拼接
     Matrix operator,(const Matrix& mat) const;
-    Matrix& operator=(Matrix&& other) noexcept; // 移动赋值构造函数
-   
-    // 这个函数单单是为了写大矩阵乘法用的,只读不修改
-    inline const double& at(size_t row, size_t col) const 
-    {
-        return m_data[col * m_rows + row];
-    }
 
-    //三类初等变换
-    void rowInterchange(size_t i,size_t j);
-    void rowMultiply(size_t row,double factor);
-    void rowAddition(size_t row1,size_t row2,double factor);
+    Matrix operator,(const Vector& vec) const;
 
-    // 原地转置方阵（修改this）
-    void transposeInPlace();
-    Matrix transposeByBlock(size_t blockSize) const;
-    Matrix transpose() const; // general transpose 适合不是很大的矩阵
-     
-    // 特殊填充方式
-    void fillWithData(const std::vector<std::vector<double>>& data);
-    void fillWithOneValue(double value);
-    void fillScaledIdentity(double k);
+    // 复杂特征与操作
+    std::tuple<int, Matrix> gaussElimination() const;
 
-    void random(double lower_bound,double upper_bound);
-   
+    std::tuple<Matrix, Matrix> LuDecomposition() const;
 
-    //特殊矩阵（静态方法）
-    // static Matrix ones(size_t row,size_t cols);
-    // static Matrix zeros(size_t row,size_t cols);
+    std::tuple<Matrix, Matrix> QrDecompostion() const;
 
-    // 小矩阵多次复制变为大矩阵
-    Matrix replicate(size_t rowTimes,size_t colTimes) const;
+    Matrix inverse() const;
 
-    // 辅助操作
-    void erase();   //清空矩阵
-    Matrix subMatrix(size_t start_row,size_t end_row,size_t start_col,size_t end_col) const; // 取子矩阵
-    double blockSum(size_t start_row,size_t end_row,size_t start_col,size_t end_col) const ;  // 计算某一个子矩阵的元素之和
+    // 复杂特征
+    T determiant() const;
 
+    bool isInvertible() const;
 
-    //导出矩阵到csv文件
-    void matrixToCsv(const std::string& filename,int precison = 6,char comma = ',');
+    T trace() const;
+
+    int rank() const;
+
+    T sum() const;
+
+    T product() const;
+
+    T frobeniusNorm() const;
+
+    // IO
+    void matrixToCsv(const std::string& filename, int precison = 6, char comma = ',');
+
     void loadFromCsv(const std::string& filename);
 
-    //流输入
-    MatrixStream operator<<(double value);
+    // 流输入（返回一个 MatrixStream 以便连续写入）——模板通用实现
+    MatrixStream<T, L, Alloc> operator<<(double value);
 
-    //辅助操作
-    friend std::istream& operator>> (std::istream& in, Matrix& mat);
-    friend std::ostream& operator<< (std::ostream& out,const Matrix& mat);
-    
-
-    //返回视图
-    TransposeView transposeView() const;
-    SubMatrixView subMatrixView(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const;
-    ReplicateView replicateView(size_t rowTimes, size_t colTimes) const;
-    DiagonalView diagonalView() const;
-    RowView rowView(size_t row) const;
-    ColView colView(size_t col) const;
-    ScalaredView scalaredView(double scalar) const;
+    // 视图（模板化，支持所有 Matrix<T, L, Alloc>）
+    TransposeView<T, L, Alloc> transposeView() const;
+    SubMatrixView<T, L, Alloc> subMatrixView(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const;
+    ReplicateView<T, L, Alloc> replicateView(size_t rowTimes, size_t colTimes) const;
+    DiagonalView<T, L, Alloc> diagonalView() const;
+    RowView<T, L, Alloc> rowView(size_t row) const;
+    ColView<T, L, Alloc> colView(size_t col) const;
+    ScalaredView<T, L, Alloc> scalaredView(double scalar) const;
 };
+
+// 输出到标准流（声明）
+template<typename T, Layout L, typename Alloc>
+inline std::ostream& operator<<(std::ostream& out, const Matrix<T, L, Alloc>& mat)
+{
+    const size_t rows = mat.getRows();
+    const size_t cols = mat.getCols();
+    out << "[";
+    for (size_t i = 0; i < rows; ++i) {
+        if (i > 0) out << "\n ";
+        for (size_t j = 0; j < cols; ++j) {
+            if (j > 0) out << ", ";
+            out << mat(i, j);
+        }
+    }
+    out << "]";
+    return out;
+}
+// Legacy Matrix class removed completely to meet new requirements.
 } // namespace
 #endif

@@ -42,8 +42,8 @@ public:
     Linear_Solver(double tolerance,int max_iteration_times);
 
     //矩阵的分解算法
-    Solution gausslian(Matrix& A_mat,Vector b_vec) const;
-    Solution Lu(Matrix& A_mat,Vector b_vec) const;
+    Solution gausslian(Matrix<>& A_mat,Vector b_vec) const;
+    Solution Lu(Matrix<>& A_mat,Vector b_vec) const;
 
     // 说一就是一，说二就是二
     

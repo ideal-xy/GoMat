@@ -1,8 +1,6 @@
 #pragma once
 
-#include <functional>
 #include "matrix.h"
-#include "vector.h"
 #include <cstddef>
 
 namespace gomat{
@@ -17,8 +15,8 @@ template <typename Derived>
 class MatrixView
 {
 public:
-    Derived& derived() {return static_cast<Derived&>(*this);}
-    const Derived& derived() const {return static_cast<const Derived&>(*this);}
+    Derived& derived() {return static_cast<Derived&>(*this);}    
+    const Derived& derived() const {return static_cast<const Derived&>(*this);}    
 
     double operator()(size_t row,size_t col) const
     {
@@ -28,41 +26,40 @@ public:
     size_t getRows() const {return derived().getRows();}
     size_t getCols() const {return derived().getCols();}
 
-    Matrix eval() const {
-    // if (getRows() == 1) {  // 单行矩阵
-    //     Matrix mat(1, getCols());
-    //     for (size_t j = 0; j < getCols(); ++j) {
-    //         std::cout << (*this)(0, j) << std::endl;
-    //     }
-    //     return mat;
-    // }
-
-    // if (getCols() == 1) {  // 单列矩阵
-    //     Matrix mat(getRows(), 1);
-    //     for (size_t i = 0; i < getRows(); ++i) {
-    //         double value = (*this)(i, 0);
-    //         mat(i, 0) = value;
-    //         std::cout << mat;
-    //     }
-    //     return mat;
-    // }
-
-    // 通用矩阵
-    Matrix result(getRows(), getCols(), false);
-    for (size_t i = 0; i < getRows(); ++i) {
-        for (size_t j = 0; j < getCols(); ++j) {
-            result(i, j) = (*this)(i, j);
+    template<typename T = double, Layout L = Layout::ColMajor, typename Alloc = SpecialAllocator<T,32>>
+    Matrix<T, L, Alloc> eval() const
+    {
+        Matrix<T, L, Alloc> result(getRows(), getCols());
+        for (size_t i = 0; i < getRows(); ++i)
+        {
+            for (size_t j = 0; j < getCols(); ++j)
+            {
+                result(i, j) = static_cast<T>((*this)(i, j));
+            }
         }
+        return result;
     }
-    return result;
-}
+
+    inline Matrix<> eval() const
+    {
+        Matrix<> result(getRows(), getCols());
+        for (size_t i = 0; i < getRows(); ++i)
+        {
+            for (size_t j = 0; j < getCols(); ++j)
+            {
+                result(i, j) = (*this)(i, j);
+            }
+        }
+        return result;
+    }
+
     template<typename OtherDerived> // 注意这里的取地址号非常重要😭
     AddExpr<Derived,OtherDerived> operator+(const MatrixView<OtherDerived>& other) const
     {
         return AddExpr<Derived,OtherDerived>(this->derived(),other.derived());
     }
     
-    template<typename OtherDerived> // 
+    template<typename OtherDerived> // 注意这里的取地址号非常重要😭
     MulExpr<Derived,OtherDerived> operator*(const MatrixView<OtherDerived>& other) const
     {
         return MulExpr<Derived,OtherDerived>(this->derived(),other.derived());
@@ -70,14 +67,15 @@ public:
     
 }; // class
 
-class RowView : public MatrixView<RowView>
+template<typename T, Layout L, typename Alloc>
+class RowView : public MatrixView<RowView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
     size_t m_row;
 
 public:
-    RowView(const Matrix& source,size_t row) : m_source(source),m_row(row)
+    RowView(const Matrix<T, L, Alloc>& source,size_t row) : m_source(source),m_row(row)
     {
         if(row >= source.getRows())
         {
@@ -87,25 +85,24 @@ public:
 
     double operator()(size_t row,size_t col) const
     {
-        if(col < 0 || col >= m_source.getCols())
-        {
-            throw std::invalid_argument("column index is out of range!");
-        }
-        return m_source(row+m_row,col);
+        if(row != 0) { throw std::invalid_argument("RowView row must be 0"); }
+        if(col >= m_source.getCols()) { throw std::invalid_argument("column index out of range"); }
+        return static_cast<double>(m_source(m_row, col));
     }
     
     size_t getRows() const {return 1;}
     size_t getCols() const {return m_source.getCols();}
 }; // class
 
-class ColView : public MatrixView<ColView>
+template<typename T, Layout L, typename Alloc>
+class ColView : public MatrixView<ColView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
     size_t m_col;
 
 public:
-    ColView(const Matrix& source,size_t col) : m_source(source),m_col(col)
+    ColView(const Matrix<T, L, Alloc>& source,size_t col) : m_source(source),m_col(col)
     {
         if(col >= source.getCols() || col < 0)
         {
@@ -115,25 +112,23 @@ public:
 
     double operator()(size_t row,size_t col) const
     {
-        if(row < 0 || row >= m_source.getRows())
-        {
-            throw std::invalid_argument("row index is out of range!");
-        }
-
-        return m_source(row,m_col+col);
+        if(col != 0) { throw std::invalid_argument("ColView col must be 0"); }
+        if(row >= m_source.getRows()) { throw std::invalid_argument("row index out of range"); }
+        return static_cast<double>(m_source(row, m_col));
     }
 
     size_t getRows() const {return m_source.getRows();}
     size_t getCols() const {return 1;}
 }; // class
 
-class DiagonalView : public MatrixView<DiagonalView>
+template<typename T, Layout L, typename Alloc>
+class DiagonalView : public MatrixView<DiagonalView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
 
 public:
-    DiagonalView(const Matrix& source) : m_source(source) 
+    DiagonalView(const Matrix<T, L, Alloc>& source) : m_source(source) 
     {
         if(!source.isSquare())
         {
@@ -147,7 +142,7 @@ public:
         {
             throw std::invalid_argument("diagonal view has noly one row !");
         }
-        return m_source(col,col);
+        return static_cast<double>(m_source(col,col));
     }
 
     size_t getRows() const {return 1;}
@@ -155,15 +150,16 @@ public:
 
 }; // class
 
-class ReplicateView : public MatrixView<ReplicateView>
+template<typename T, Layout L, typename Alloc>
+class ReplicateView : public MatrixView<ReplicateView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
     size_t m_rowMuliples;
     size_t m_colMultiples;
 
 public:
-    ReplicateView(const Matrix& source,size_t rowMuliples,size_t colMultiples)
+    ReplicateView(const Matrix<T, L, Alloc>& source,size_t rowMuliples,size_t colMultiples)
                  : m_source(source),m_rowMuliples(rowMuliples),
                    m_colMultiples(colMultiples)
     {
@@ -175,22 +171,23 @@ public:
 
     double operator()(size_t row,size_t col) const
     {
-        return m_source((row % m_source.getRows()),(col % m_source.getCols()));
+        return static_cast<double>(m_source((row % m_source.getRows()),(col % m_source.getCols())));
     }
 
     size_t getRows() const { return m_source.getRows() * m_rowMuliples; }
     size_t getCols() const { return m_source.getCols() * m_colMultiples; }
 }; // class
 
-class SubMatrixView : public MatrixView<SubMatrixView>
+template<typename T, Layout L, typename Alloc>
+class SubMatrixView : public MatrixView<SubMatrixView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
     size_t m_start_row,m_start_col;
     size_t m_rows,m_col;
 
 public:
-    SubMatrixView(const Matrix& source,size_t start_row,size_t start_col,size_t end_row,size_t end_col)
+    SubMatrixView(const Matrix<T, L, Alloc>& source,size_t start_row,size_t start_col,size_t end_row,size_t end_col)
                  : m_source(source),m_start_row(start_row),m_start_col(start_col),
                    m_rows(end_row-start_row),m_col(end_col-start_col)
     {
@@ -207,37 +204,39 @@ public:
 
     double operator()(size_t row,size_t col) const
     {
-        return m_source(m_start_row + row,m_start_col + col);
+        return static_cast<double>(m_source(m_start_row + row,m_start_col + col));
     }
 
 }; // class
 
 //几种常用的视图
-class TransposeView : public MatrixView<TransposeView>
+template<typename T, Layout L, typename Alloc>
+class TransposeView : public MatrixView<TransposeView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
 
 public:
-    TransposeView(const Matrix& source) : m_source(source) {}
+    TransposeView(const Matrix<T, L, Alloc>& source) : m_source(source) {}
     
     size_t getRows() const { return m_source.getCols(); }
     size_t getCols() const { return m_source.getRows(); }
 
     double operator()(size_t row, size_t col) const 
     {  
-        return m_source(col, row);
+        return static_cast<double>(m_source(col, row));
     }
 };// class
 
-class ScalaredView : public MatrixView<ScalaredView>
+template<typename T, Layout L, typename Alloc>
+class ScalaredView : public MatrixView<ScalaredView<T, L, Alloc>>
 {
 private:
-    const Matrix& m_source;
+    const Matrix<T, L, Alloc>& m_source;
     double m_scalar;
 
 public:
-    ScalaredView(const Matrix& source,double scalar) : m_source(source),m_scalar(scalar) {}
+    ScalaredView(const Matrix<T, L, Alloc>& source,double scalar) : m_source(source),m_scalar(scalar) {}
 
     double operator()(size_t row,size_t col) const
     {
@@ -247,7 +246,7 @@ public:
             return 0.0;
         }
 
-        return m_scalar * m_source(row,col);
+        return m_scalar * static_cast<double>(m_source(row,col));
     }
 
     size_t getRows() const { return m_source.getRows(); }
@@ -314,3 +313,41 @@ public:
 
 
 } //. namespace gomat
+
+// 为 Matrix 提供视图函数的模板内联实现
+namespace gomat {
+template<typename T, Layout L, typename Alloc>
+inline TransposeView<T, L, Alloc> Matrix<T, L, Alloc>::transposeView() const {
+    return TransposeView<T, L, Alloc>(*this);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline SubMatrixView<T, L, Alloc> Matrix<T, L, Alloc>::subMatrixView(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const {
+    return SubMatrixView<T, L, Alloc>(*this, start_row, start_col, end_row, end_col);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline ReplicateView<T, L, Alloc> Matrix<T, L, Alloc>::replicateView(size_t rowTimes, size_t colTimes) const {
+    return ReplicateView<T, L, Alloc>(*this, rowTimes, colTimes);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline DiagonalView<T, L, Alloc> Matrix<T, L, Alloc>::diagonalView() const {
+    return DiagonalView<T, L, Alloc>(*this);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline RowView<T, L, Alloc> Matrix<T, L, Alloc>::rowView(size_t row) const {
+    return RowView<T, L, Alloc>(*this, row);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline ColView<T, L, Alloc> Matrix<T, L, Alloc>::colView(size_t col) const {
+    return ColView<T, L, Alloc>(*this, col);
+}
+
+template<typename T, Layout L, typename Alloc>
+inline ScalaredView<T, L, Alloc> Matrix<T, L, Alloc>::scalaredView(double scalar) const {
+    return ScalaredView<T, L, Alloc>(*this, scalar);
+}
+}
