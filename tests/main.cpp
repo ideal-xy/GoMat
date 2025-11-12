@@ -1,41 +1,35 @@
 #include <iostream>
 #include <chrono>
 #include "gomat.h"
+#include "decompositions.h"
+#include "matrix.h"
 #include <random>
 #include <thread>
 #include <Eigen/Dense>
+#include <cmath>
 
-
-int main() 
+int main()
 {
-    unsigned int n_threads = std::thread::hardware_concurrency();
-    std::cout << "硬件支持 " << n_threads << " 个并发线程。" << std::endl;
-    Eigen::setNbThreads(n_threads); 
- 
-    gomat::Matrix mat(1000,1000,true);
-    gomat::Matrix mat2(1000,1000,true);
-    mat.random(1, 2);
-    mat2.random(2, 3);
-
-
-    const int SIZE = 1000;
-    Eigen::MatrixXd A = Eigen::MatrixXd::Random(SIZE, SIZE);
-    Eigen::MatrixXd B = Eigen::MatrixXd::Random(SIZE, SIZE);
+    gomat::Matrix<int> mat(3,3);
+    mat << 1,2,3,4,5,6,7,8,9;
+    gomat::Matrix<double> mat2(3,3);
+    mat2 << 1,2,3,4,5,6,7,8,9;
     
-    Eigen::MatrixXd D = A * B;
-    auto start3 = std::chrono::high_resolution_clock::now();
-    Eigen::MatrixXd C = A * B;
-    auto end3 = std::chrono::high_resolution_clock::now();
-    auto duration3 = std::chrono::duration_cast<std::chrono::microseconds>(end3 - start3);
-    std::cout << "Eigen (多线程) 的1000*1000矩阵乘法: " << duration3.count() / 1000000.0 << "s" << std::endl;
+    auto view = mat.transposeView() + mat.scalaredView(2);
+    auto view2 = view * view + view;
+    auto result = view2.eval();
 
+    gomat::Matrix<double> mat3(2000,5000);
+    mat3.random(1,2);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    mat.multiplyWithMulThread(mat2);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "GoMat (多线程) 的1000*1000矩阵乘法: " << duration.count() / 1'000'000.0 << " s" << std::endl;
+    gomat::Matrix<double> mat4(5000,2000);
+    mat4.random(1,2);
 
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    auto result2 = mat3 * mat4;
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
     
     return 0;
+
 }
