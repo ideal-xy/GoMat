@@ -16,10 +16,8 @@
 #endif
 namespace gomat {
     
-
 enum class Layout { ColMajor, RowMajor };
 
-// 前置声明供 MatrixT 使用视图与流类型
 template <typename Derived> class MatrixView;
 template<typename T, Layout L, typename Alloc> class TransposeView;
 template<typename T, Layout L, typename Alloc> class SubMatrixView;
@@ -31,7 +29,7 @@ template<typename T, Layout L, typename Alloc> class ScalaredView;
 class Vector;
 template<typename T, Layout L, typename Alloc> class MatrixStream;
 
-// 预声明模板：将主模板命名为 Matrix，并为 T 提供默认为 double
+
 template<typename T = double, Layout L = Layout::ColMajor,
          typename Alloc = SpecialAllocator<T, 32>> class Matrix;
 
@@ -47,7 +45,6 @@ public:
     Matrix(size_t rows, size_t cols) : m_data(rows * cols), m_rows(rows), m_cols(cols) {}
     Matrix(size_t rows, size_t cols, bool /*use_contiguous*/) : m_data(rows * cols), m_rows(rows), m_cols(cols) {}
 
-    // 兼容旧接口：从二维数组构造（按列主序填充）
     Matrix(const std::vector<std::vector<T>>& data)
     {
         m_rows = data.size();
@@ -88,7 +85,6 @@ public:
         m_rows = rows; m_cols = cols; m_data.resize(rows * cols);
     }
 
-    // 兼容旧接口（统一连续存储后为 no-op）
     inline void toContiguous() {}
     inline void toNonContiguous() {}
     inline void ensureContiguousIfLarge() {}
@@ -99,6 +95,7 @@ public:
     inline bool isSquare() const { return m_rows == m_cols; }
     inline bool isContiguous() const { return true; }
     inline bool isLarge() const { return (m_rows >= 64 || m_cols >= 64); }
+    inline bool isSymmetric() const ;
 
     bool isEmpty(double epsilon) const;
 
@@ -199,10 +196,10 @@ public:
 
     void loadFromCsv(const std::string& filename);
 
-    // 流输入（返回一个 MatrixStream 以便连续写入）——模板通用实现
+    // 流输入
     MatrixStream<T, L, Alloc> operator<<(double value);
 
-    // 视图（模板化，支持所有 Matrix<T, L, Alloc>）
+    // 视图
     TransposeView<T, L, Alloc> transposeView() const;
     SubMatrixView<T, L, Alloc> subMatrixView(size_t start_row, size_t end_row, size_t start_col, size_t end_col) const;
     ReplicateView<T, L, Alloc> replicateView(size_t rowTimes, size_t colTimes) const;
@@ -229,6 +226,6 @@ inline std::ostream& operator<<(std::ostream& out, const Matrix<T, L, Alloc>& ma
     out << "]";
     return out;
 }
-// Legacy Matrix class removed completely to meet new requirements.
+
 } // namespace
 #endif
